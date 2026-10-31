@@ -1,0 +1,25 @@
+# Flutter/Dart specific
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+/build/
+
+# Android/IntelliJ specific
+android/.gradle/
+android/app/build/
+android/local.properties
+.idea/
+*.iml
+.gradle/
+captures/
+.externalNativeBuild/
+.cxx/
+local.properties
+
+# IDE & OS specific
+.vscode/
+.DS_Store
+Thumbs.db
