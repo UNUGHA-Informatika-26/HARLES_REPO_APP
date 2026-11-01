@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../models/order_model.dart';
 import '../services/auth_service.dart';
@@ -19,6 +20,10 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   final OrderService _orderService = OrderService();
   final AuthService _authService = AuthService();
 
+  late PageController _promoPageController;
+  Timer? _promoTimer;
+  int _currentPromoPage = 0;
+
   static const Color _primaryTeal = Color(0xFF13C5BC);
   static const Color _darkTeal = Color(0xFF005F5B);
   static const Color _darkText = Color(0xFF0F172A);
@@ -30,13 +35,34 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _promoPageController = PageController();
     _orderService.addListener(_onServiceUpdate);
     _authService.addListener(_onServiceUpdate);
     _orderService.initRealtimeOrders();
+
+    // Timer Auto-Slide Iklan Promosi Layanan Harles setiap 3.5 Detik
+    _startPromoAutoSlide();
+  }
+
+  void _startPromoAutoSlide() {
+    _promoTimer?.cancel();
+    _promoTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
+      if (!mounted) return;
+      if (_promoPageController.hasClients) {
+        _currentPromoPage = (_currentPromoPage + 1) % 4;
+        _promoPageController.animateToPage(
+          _currentPromoPage,
+          duration: const Duration(milliseconds: 600),
+          curve: Curves.easeInOutCubic,
+        );
+      }
+    });
   }
 
   @override
   void dispose() {
+    _promoTimer?.cancel();
+    _promoPageController.dispose();
     _orderService.removeListener(_onServiceUpdate);
     _authService.removeListener(_onServiceUpdate);
     super.dispose();
@@ -236,7 +262,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     ),
                     const SizedBox(height: 16),
 
-                    // Field 1: Label Dinamis (Titik Jemput / Pengirim / Beli di Mana)
+                    // Field 1: Label Dinamis
                     Text(
                       label1,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _darkText),
@@ -255,7 +281,7 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                     ),
                     const SizedBox(height: 12),
 
-                    // Field 2: Label Dinamis (Alamat Antar / Tujuan Penerima / Pengiriman)
+                    // Field 2: Label Dinamis
                     Text(
                       label2,
                       style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _darkText),
@@ -673,50 +699,10 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
                 ),
               ),
 
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
 
-              // 2. SALDO HARLESPAY CUSTOMER
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE2E8F0)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Row(
-                          children: [
-                            Icon(Icons.account_balance_wallet_rounded, color: _darkTeal, size: 18),
-                            SizedBox(width: 6),
-                            Text('Saldo HarlesPay', style: TextStyle(color: _secondaryText, fontSize: 12, fontWeight: FontWeight.bold)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Rp ${user?.walletBalance.toInt() ?? 150000}', style: const TextStyle(color: _darkText, fontSize: 20, fontWeight: FontWeight.bold)),
-                      ],
-                    ),
-                    ElevatedButton.icon(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _primaryTeal,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-                        elevation: 0,
-                      ),
-                      icon: const Icon(Icons.add_circle_outline_rounded, size: 16, color: Colors.white),
-                      label: const Text('Top Up', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 12)),
-                      onPressed: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Fitur Top Up Saldo HarlesPay dapat menghubungi CS/Admin WA.')),
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
+              // 2. SLIDE IKLAN PROMOSI LAYANAN HARLES JUJUG (MENGGANTIKAN SALDO HARLESPAY)
+              _buildPromoCarouselWidget(),
 
               const SizedBox(height: 20),
 
@@ -873,6 +859,166 @@ class _CustomerDashboardScreenState extends State<CustomerDashboardScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  // --- WIDGET CAROUSEL IKLAN PROMOSI LAYANAN HARLES ---
+  Widget _buildPromoCarouselWidget() {
+    final List<Map<String, dynamic>> promoSlides = [
+      {
+        'title': 'Express Paket & Dokumen',
+        'subtitle': 'Kirim Paket / Dokumen Cepat Kilat di Cilacap & Jeruklegi!',
+        'badge': 'PROMO ONGKIR Rp 8.000',
+        'service': 'Express Paket',
+        'icon': Icons.local_shipping_rounded,
+        'colors': [const Color(0xFFEA580C), const Color(0xFFC2410C)],
+      },
+      {
+        'title': 'Kuliner Harles Food',
+        'subtitle': 'Laper? Pesan Makanan / Minuman dari Warung Favoritmu!',
+        'badge': 'ANTAR KULINER CILACAP',
+        'service': 'Harles Food',
+        'icon': Icons.restaurant_rounded,
+        'colors': [const Color(0xFFE11D48), const Color(0xFFBE123C)],
+      },
+      {
+        'title': 'Harles Ride & Ojek',
+        'subtitle': 'Antar Penumpang Cepat, Nyaman, Hemat Mulai Rp 9.000!',
+        'badge': 'TARIF HEMAT KONTINU',
+        'service': 'Harles Ride',
+        'icon': Icons.two_wheeler_rounded,
+        'colors': [const Color(0xFF0284C7), const Color(0xFF0369A1)],
+      },
+      {
+        'title': 'Harles Mart Belanja',
+        'subtitle': 'Titip Belanja Sembako & Kebutuhan Harian Tanpa Antre!',
+        'badge': 'JASA TITIP BELANJA',
+        'service': 'Harles Mart',
+        'icon': Icons.shopping_bag_rounded,
+        'colors': [const Color(0xFF7C3AED), const Color(0xFF6D28D9)],
+      },
+    ];
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 140,
+          child: PageView.builder(
+            controller: _promoPageController,
+            onPageChanged: (idx) {
+              setState(() {
+                _currentPromoPage = idx;
+              });
+            },
+            itemCount: promoSlides.length,
+            itemBuilder: (context, index) {
+              final slide = promoSlides[index];
+              final List<Color> bgColors = slide['colors'];
+
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 2),
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: bgColors,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [
+                    BoxShadow(
+                      color: bgColors.first.withValues(alpha: 0.35),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Text(
+                              slide['badge'],
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w900),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            slide['title'],
+                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            slide['subtitle'],
+                            style: const TextStyle(color: Colors.white70, fontSize: 11, height: 1.2),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _showCreateOrderModal(slide['service'], 8000),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Pesan ${slide['service']} ➔',
+                                    style: TextStyle(color: bgColors.first, fontSize: 11, fontWeight: FontWeight.bold),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    CircleAvatar(
+                      radius: 30,
+                      backgroundColor: Colors.white24,
+                      child: Icon(slide['icon'], color: Colors.white, size: 32),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+
+        const SizedBox(height: 8),
+
+        // Indicator Dots (• • • •)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(4, (index) {
+            final isCurrent = index == _currentPromoPage;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: isCurrent ? 20 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: isCurrent ? _primaryTeal : Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
+        ),
+      ],
     );
   }
 

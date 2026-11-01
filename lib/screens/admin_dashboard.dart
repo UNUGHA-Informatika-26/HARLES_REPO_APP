@@ -769,6 +769,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
 
           const SizedBox(height: 16),
 
+          // RINGKASAN STATISTIK ORDERAN (MASUK, DITUGASKAN, SELESAI, REJECT/CANCEL)
+          _buildOrderStatisticsOverview(allOrders),
+
+          const SizedBox(height: 16),
+
           // Live Fleet Radar Map Posisi Seluruh Driver
           DriverFleetRadarMap(
             drivers: _authService.users,
@@ -800,6 +805,88 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> with Single
                 return _buildAdminOrderCard(order);
               },
             ),
+        ],
+      ),
+    );
+  }
+
+  // --- RINGKASAN STATISTIK ORDERAN (MASUK, BERJALAN, SELESAI, REJECT/CANCEL) ---
+  Widget _buildOrderStatisticsOverview(List<OrderModel> allOrders) {
+    final pendingCount = allOrders.where((o) => o.status == OrderStatus.pendingAdmin).length;
+    final activeCount = allOrders.where((o) => o.status == OrderStatus.driverAssigned || o.status == OrderStatus.inProgress).length;
+    final completedCount = allOrders.where((o) => o.status == OrderStatus.completed).length;
+    final cancelledCount = allOrders.where((o) => o.status == OrderStatus.cancelled).length;
+
+    double totalCommissionOffice = 0;
+    for (final o in allOrders) {
+      if (o.status == OrderStatus.completed || o.status == OrderStatus.inProgress || o.status == OrderStatus.driverAssigned) {
+        totalCommissionOffice += (o.deliveryFee * 0.20) + o.adminFee;
+      }
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Row(
+                children: [
+                  Icon(Icons.bar_chart_rounded, size: 18, color: _darkTeal),
+                  SizedBox(width: 6),
+                  Text('Ringkasan Statistik Orderan', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: _darkText)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(color: _primaryTeal.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                child: Text('Profit Kantor: Rp ${totalCommissionOffice.toInt()}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: _darkTeal)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: _buildStatItem('Masuk Baru', '$pendingCount', Colors.amber.shade900, Colors.amber.shade50)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildStatItem('Berjalan', '$activeCount', Colors.blue.shade900, Colors.blue.shade50)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildStatItem('Selesai', '$completedCount', Colors.green.shade900, Colors.green.shade50)),
+              const SizedBox(width: 6),
+              Expanded(child: _buildStatItem('Reject/Batal', '$cancelledCount', Colors.red.shade900, Colors.red.shade50)),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatItem(String label, String value, Color textColor, Color bgColor) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Text(value, style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: textColor)),
+          const SizedBox(height: 2),
+          Text(label, style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: textColor), textAlign: TextAlign.center),
         ],
       ),
     );
